@@ -164,11 +164,11 @@ async def _extract_and_analyze_frames(
 
     t0 = time.time()
     if strategy == "scene":
-        raw_frames = extractor.extract_scene_changes(video_path, threshold, max_frames)
+        raw_frames = await asyncio.to_thread(extractor.extract_scene_changes, video_path, threshold, max_frames)
     elif strategy == "interval":
-        raw_frames = extractor.extract_interval(video_path, float(interval), max_frames)
+        raw_frames = await asyncio.to_thread(extractor.extract_interval, video_path, float(interval), max_frames)
     else:
-        raw_frames = extractor.extract_combined(video_path, threshold, float(interval), max_frames)
+        raw_frames = await asyncio.to_thread(extractor.extract_combined, video_path, threshold, float(interval), max_frames)
 
     total_raw = len(raw_frames)
     logger.info(f"Extracted {total_raw} raw frames in {time.time() - t0:.1f}s")
@@ -252,10 +252,10 @@ async def analyze_video(
     t0 = time.time()
 
     if downloader.is_url(source):
-        raw_meta = downloader.get_metadata(source)  # single yt-dlp call for both metadata + video_id
+        raw_meta = await asyncio.to_thread(downloader.get_metadata, source)
         video_id = raw_meta.get("id", hashlib.md5(source.encode()).hexdigest()[:16])
     else:
-        dl_result = downloader.resolve_source(source)
+        dl_result = await asyncio.to_thread(downloader.resolve_source, source)
         video_id = dl_result.video_id
         raw_meta = {"id": video_id, "filepath": source, "duration": None}
 
@@ -296,7 +296,7 @@ async def analyze_video(
     # --- STEP 2: Single download (only for URLs) ---
     if downloader.is_url(source):
         t0 = time.time()
-        dl_result = downloader.download_with_info(source, raw_meta)  # reuse metadata, no extra API call
+        dl_result = await asyncio.to_thread(downloader.download_with_info, source, raw_meta)
         logger.info(f"Download done in {time.time() - t0:.1f}s")
     # For local files, dl_result is already set above
 

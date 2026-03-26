@@ -26,13 +26,13 @@ async def extract_frames(source: str, max_frames: int = 30, threshold: float = 0
     downloader = Downloader(timeout=settings.download_timeout)
     extractor = FrameExtractor()
     warnings: list[Warning] = []
-    result = downloader.resolve_source(source)
+    result = await asyncio.to_thread(downloader.resolve_source, source)
     if strategy == "scene":
-        raw_frames = extractor.extract_scene_changes(result.video_path, threshold, max_frames)
+        raw_frames = await asyncio.to_thread(extractor.extract_scene_changes, result.video_path, threshold, max_frames)
     elif strategy == "interval":
-        raw_frames = extractor.extract_interval(result.video_path, float(interval), max_frames)
+        raw_frames = await asyncio.to_thread(extractor.extract_interval, result.video_path, float(interval), max_frames)
     else:
-        raw_frames = extractor.extract_combined(result.video_path, threshold, float(interval), max_frames)
+        raw_frames = await asyncio.to_thread(extractor.extract_combined, result.video_path, threshold, float(interval), max_frames)
     total_raw = len(raw_frames)
     if deduplicate and raw_frames:
         dedup = Deduplicator()

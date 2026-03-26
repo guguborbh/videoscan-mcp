@@ -1,11 +1,12 @@
 """get_metadata MCP tool — video info without full download."""
 from __future__ import annotations
+import asyncio
 from videoscan.core.downloader import Downloader
 from videoscan.types import MetadataResult
 
 async def get_metadata(source: str, include: list[str] | None = None) -> MetadataResult:
     downloader = Downloader()
-    raw = downloader.get_metadata(source)
+    raw = await asyncio.to_thread(downloader.get_metadata, source)
     all_fields = {
         "title": raw.get("title"),
         "channel": raw.get("uploader") or raw.get("channel"),

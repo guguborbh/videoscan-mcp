@@ -14,12 +14,12 @@ async def analyze_moment(source: str, start: float, end: float, dense: bool = Tr
     t_start = time.time()
     warnings: list[Warning] = []
     downloader = Downloader(timeout=settings.download_timeout)
-    dl_result = downloader.resolve_source(source)
+    dl_result = await asyncio.to_thread(downloader.resolve_source, source)
     extractor = FrameExtractor()
     if dense:
-        raw_frames = extractor.extract_dense(dl_result.video_path, start, end)
+        raw_frames = await asyncio.to_thread(extractor.extract_dense, dl_result.video_path, start, end)
     else:
-        raw_frames = extractor.extract_interval(dl_result.video_path, interval=2.0, max_frames=30)
+        raw_frames = await asyncio.to_thread(extractor.extract_interval, dl_result.video_path, 2.0, 30)
         raw_frames = [f for f in raw_frames if start <= f.timestamp <= end]
     vision_name = provider or settings.vision_provider
     vision = get_vision_provider(vision_name, settings.get_api_key(vision_name), settings.get_vision_model())

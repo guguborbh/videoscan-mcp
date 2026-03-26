@@ -1,5 +1,6 @@
 """get_frame_at MCP tool — single frame at a timestamp."""
 from __future__ import annotations
+import asyncio
 from videoscan.core.downloader import Downloader
 from videoscan.core.frame_extractor import FrameExtractor
 from videoscan.providers.base import get_vision_provider
@@ -10,9 +11,9 @@ async def get_frame_at(source: str, timestamp: float, analyze: bool = True, prov
     settings = settings or Settings()
     downloader = Downloader(timeout=settings.download_timeout)
     extractor = FrameExtractor()
-    result = downloader.resolve_source(source)
-    frame = extractor.extract_at(result.video_path, timestamp)
-    b64 = frame.to_base64()
+    result = await asyncio.to_thread(downloader.resolve_source, source)
+    frame = await asyncio.to_thread(extractor.extract_at, result.video_path, timestamp)
+    b64 = await asyncio.to_thread(frame.to_base64)
     description = None
     ocr_text = None
     if analyze:
