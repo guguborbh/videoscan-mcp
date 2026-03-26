@@ -4,7 +4,7 @@ from videoscan.utils.config import Settings
 def test_default_settings():
     settings = Settings()
     assert settings.vision_provider == "openai"
-    assert settings.vision_concurrency == 5
+    assert settings.vision_concurrency == 15
     assert settings.cache_enabled is True
     assert settings.max_video_duration == 3600
     assert settings.max_analyzed_frames == 100

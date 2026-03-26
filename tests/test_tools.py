@@ -164,26 +164,25 @@ async def test_extract_frames_handles_vision_failure(mock_settings):
 
 @pytest.mark.asyncio
 async def test_analyze_video_full_pipeline(mock_settings):
-    from videoscan.tools.extract_frames import ExtractFramesResult
-    mock_ef = ExtractFramesResult(
-        frames=[],
-        warnings=[],
-        total_raw_extracted=10,
-        total_after_dedup=8,
-        vision_cost_usd=0.12,
+    mock_transcript = (
+        TranscriptResult(language="en", segments=[TranscriptSegment(text="Hi", start=0.0, end=1.0)]),
+        0.0,
+        [],
     )
-    mock_transcript = TranscriptResult(
-        language="en",
-        segments=[TranscriptSegment(text="Hi", start=0.0, end=1.0)],
+    mock_frames = (
+        [],  # frame_results
+        10,  # total_raw
+        8,   # total_after_dedup
+        0.12,  # vision_cost
+        [],  # warnings
     )
     with patch("videoscan.tools.analyze_video.Downloader") as MockDL, \
-         patch("videoscan.tools.analyze_video.extract_frames", new_callable=AsyncMock, return_value=mock_ef), \
-         patch("videoscan.tools.analyze_video.get_metadata", new_callable=AsyncMock, return_value=MetadataResult(title="Test", duration=60.0)), \
-         patch("videoscan.tools.analyze_video.transcribe", new_callable=AsyncMock, return_value=mock_transcript), \
+         patch("videoscan.tools.analyze_video._transcribe_audio", new_callable=AsyncMock, return_value=mock_transcript), \
+         patch("videoscan.tools.analyze_video._extract_and_analyze_frames", new_callable=AsyncMock, return_value=mock_frames), \
          patch("videoscan.tools.analyze_video.Cache") as MockCache:
         MockDL.return_value.is_url.return_value = True
-        MockDL.return_value.get_video_id.return_value = "abc123"
-        MockDL.return_value.get_metadata.return_value = {"duration": 60}
+        MockDL.return_value.get_metadata.return_value = {"id": "abc123", "duration": 60, "title": "Test"}
+        MockDL.return_value.resolve_source.return_value = MagicMock(video_path="/tmp/v.mp4", audio_path="/tmp/a.wav", video_id="abc123")
         MockCache.return_value.get_result.return_value = None
         from videoscan.tools.analyze_video import analyze_video
         result = await analyze_video("https://example.com/vid", settings=mock_settings)

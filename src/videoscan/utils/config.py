@@ -12,7 +12,7 @@ _DEFAULT_VISION_MODELS = {
 class Settings(BaseSettings):
     vision_provider: str = "openai"
     vision_model: str = ""
-    vision_concurrency: int = 5
+    vision_concurrency: int = 15
     transcription_provider: str = "openai"
     transcription_model: str = "whisper-1"
     openai_api_key: str = ""
