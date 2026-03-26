@@ -250,7 +250,7 @@ A typical 10-minute video analyzed with `analyze_video` (30 frames + transcripti
 ## Development
 
 ```bash
-git clone https://github.com/your-org/videoscan-mcp
+git clone https://github.com/guguborbh/videoscan-mcp
 cd videoscan-mcp
 pip install -e ".[dev]"
 pytest

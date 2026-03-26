@@ -46,6 +46,7 @@ dev = [
 
 [project.scripts]
 videoscan = "videoscan.server:main"
+videoscan-mcp = "videoscan.server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/videoscan"]
