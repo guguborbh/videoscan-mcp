@@ -110,6 +110,20 @@ async def get_metadata(source: str, include: list[str] | None = None) -> dict:
 def main():
     """Entry point for the VideoScan MCP server."""
     logging.basicConfig(level=logging.INFO, format="%(name)s - %(levelname)s - %(message)s")
+
+    # Pre-import heavy modules BEFORE MCP stdio transport starts.
+    # cv2/numpy can deadlock if first imported after stdio is captured by MCP.
+    import cv2  # noqa: F401
+    import numpy  # noqa: F401
+
+    # Also pre-import all tool modules so they're ready when called
+    import videoscan.tools.analyze_video  # noqa: F401
+    import videoscan.tools.extract_frames  # noqa: F401
+    import videoscan.tools.analyze_moment  # noqa: F401
+    import videoscan.tools.get_frame_at  # noqa: F401
+    import videoscan.tools.get_metadata  # noqa: F401
+    import videoscan.tools.transcribe  # noqa: F401
+
     deps = check_dependencies()
     for name, status in deps.items():
         if status.available:

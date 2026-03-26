@@ -108,13 +108,16 @@ class Downloader:
 
     def _extract_audio_local(self, video_path: str, audio_path: str) -> str | None:
         """Extract audio from local video file using ffmpeg."""
+        # Use MP3 instead of WAV — much smaller file for Whisper upload (~2MB vs 25MB for 13min)
+        audio_path = audio_path.replace(".wav", ".mp3")
         try:
             cmd = [
                 "ffmpeg", "-i", video_path,
                 "-vn",  # no video
-                "-acodec", "pcm_s16le",  # WAV format
+                "-acodec", "libmp3lame",  # MP3 format
                 "-ar", "16000",  # 16kHz (Whisper optimal)
                 "-ac", "1",  # mono (Whisper optimal)
+                "-b:a", "64k",  # 64kbps is enough for speech
                 "-y",  # overwrite
                 audio_path,
             ]
