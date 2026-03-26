@@ -7,6 +7,7 @@ An MCP (Model Context Protocol) server for comprehensive video analysis — AI-p
 - **Full video analysis** — combines transcription, frame extraction, and metadata in a single call
 - **AI vision analysis** — describes frames and extracts on-screen text (OCR) using GPT-4o, Claude, or Gemini
 - **Audio transcription** — Whisper-based transcription with timestamps and language detection
+- **Auto-tuning** — automatically adjusts frame extraction density, interval, and detail level based on video duration
 - **Smart frame extraction** — scene-change detection, interval sampling, or combined strategy
 - **Deduplication** — perceptual hashing removes near-duplicate frames before analysis
 - **Metadata extraction** — title, duration, chapters, tags, view count, and more without full download
@@ -113,20 +114,34 @@ Once connected, you can ask Claude things like:
 - "What's on screen at the 2:30 mark of this video?"
 - "Extract frames from this video and describe what you see"
 
+## Auto-Tuning
+
+When `max_frames` and `interval` are not explicitly set, VideoScan automatically adjusts frame extraction parameters based on video duration to optimize cost and coverage:
+
+| Duration | Frames | Interval | Strategy | Detail |
+|---|---|---|---|---|
+| **< 2 min** | ~1/sec (dense) | 1s | combined | detailed |
+| **2–10 min** | ~40 | 3s | combined | standard |
+| **10–30 min** | ~30 | 10s | combined | standard |
+| **30–60 min** | ~30 | 20s | combined | brief |
+| **> 60 min** | ~20 | 30s | scene only | brief |
+
+Short videos get dense frame extraction for maximum detail, while longer videos use lighter sampling to keep costs down. You can always override by setting `max_frames` or `interval` explicitly.
+
 ## Tool Reference
 
 ### `analyze_video`
 
-Full pipeline — transcription + AI frame analysis + metadata in one call.
+Full pipeline — transcription + AI frame analysis + metadata in one call. Uses [auto-tuning](#auto-tuning) by default.
 
 | Parameter | Type | Default | Description |
 |---|---|---|---|
 | `source` | string | required | URL or local file path |
 | `detail` | string | `"standard"` | Vision level: `"brief"`, `"standard"`, `"detailed"` |
-| `max_frames` | int | `30` | Maximum frames to analyze (1–100) |
+| `max_frames` | int | auto | Maximum frames to analyze — set to `-1` (default) for auto-tuning based on duration |
 | `threshold` | float | `0.3` | Scene change sensitivity (0.0–1.0) |
 | `strategy` | string | `"combined"` | Frame extraction: `"scene"`, `"interval"`, `"combined"` |
-| `interval` | int | `5` | Seconds between frames in interval mode |
+| `interval` | int | auto | Seconds between frames — set to `-1` (default) for auto-tuning based on duration |
 | `skip_frames` | bool | `false` | Skip visual analysis (transcription only) |
 | `skip_audio` | bool | `false` | Skip transcription (frames only) |
 | `language` | string | `"auto"` | Transcription language or `"auto"` |
