@@ -94,6 +94,13 @@ def _auto_tune_params(
     final_strategy = strategy  # strategy is always explicit (has a default of "combined")
     final_detail = auto_detail  # detail auto-adjusts unless user explicitly chose non-standard
 
+    # When few frames requested on a long video, interval is faster and sufficient
+    if final_max <= 15 and dur_min > 5 and final_strategy == "combined":
+        final_strategy = "interval"
+        # Spread frames evenly across the video
+        final_interval = max(1, int(duration / final_max))
+        logger.info(f"Auto-switch to interval strategy (few frames on long video)")
+
     logger.info(
         f"Auto-tune ({dur_min:.1f}min): max_frames={final_max}, "
         f"interval={final_interval}s, strategy={final_strategy}, detail={final_detail}"
