@@ -296,7 +296,7 @@ async def analyze_video(
     # --- STEP 2: Single download (only for URLs) ---
     if downloader.is_url(source):
         t0 = time.time()
-        dl_result = downloader.resolve_source(source)  # downloads video + audio
+        dl_result = downloader.download_with_info(source, raw_meta)  # reuse metadata, no extra API call
         logger.info(f"Download done in {time.time() - t0:.1f}s")
     # For local files, dl_result is already set above
 
