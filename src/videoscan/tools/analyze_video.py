@@ -30,6 +30,78 @@ def _params_hash(**kwargs) -> str:
     return hashlib.md5(str(sorted(kwargs.items())).encode()).hexdigest()[:12]
 
 
+# Sentinel to detect when user didn't explicitly set a parameter
+_AUTO = -1
+
+
+def _auto_tune_params(
+    duration: float,
+    max_frames: int,
+    interval: int,
+    strategy: str,
+    detail: str,
+) -> tuple[int, int, str, str]:
+    """Auto-tune frame extraction params based on video duration.
+
+    Only overrides params that the user didn't explicitly set (value == _AUTO).
+    Returns (max_frames, interval, strategy, detail).
+    """
+    if duration <= 0:
+        # Unknown duration — use conservative defaults
+        return (
+            max_frames if max_frames != _AUTO else 20,
+            interval if interval != _AUTO else 5,
+            strategy,
+            detail,
+        )
+
+    dur_min = duration / 60.0
+
+    if dur_min <= 2:
+        # Short video: dense, capture everything
+        auto_max = int(duration)  # ~1 frame/second
+        auto_interval = 1
+        auto_strategy = "combined"
+        auto_detail = detail if detail != "standard" else "detailed"
+    elif dur_min <= 10:
+        # Medium: balanced
+        auto_max = 40
+        auto_interval = 3
+        auto_strategy = "combined"
+        auto_detail = detail
+    elif dur_min <= 30:
+        # Long: efficient
+        auto_max = 30
+        auto_interval = 10
+        auto_strategy = "combined"
+        auto_detail = detail
+    elif dur_min <= 60:
+        # Very long: economical
+        auto_max = 30
+        auto_interval = 20
+        auto_strategy = "combined"
+        auto_detail = detail if detail != "standard" else "brief"
+    else:
+        # 60min+: light
+        auto_max = 20
+        auto_interval = 30
+        auto_strategy = "scene"
+        auto_detail = detail if detail != "standard" else "brief"
+
+    # Only apply auto values where user didn't specify
+    final_max = max_frames if max_frames != _AUTO else auto_max
+    final_interval = interval if interval != _AUTO else auto_interval
+    final_strategy = strategy  # strategy is always explicit (has a default of "combined")
+    final_detail = auto_detail  # detail auto-adjusts unless user explicitly chose non-standard
+
+    logger.info(
+        f"Auto-tune ({dur_min:.1f}min): max_frames={final_max}, "
+        f"interval={final_interval}s, strategy={final_strategy}, detail={final_detail}"
+    )
+
+    return final_max, final_interval, final_strategy, final_detail
+
+
 def _build_metadata(raw: dict) -> MetadataResult:
     """Build MetadataResult from raw yt-dlp info dict."""
     return MetadataResult(
@@ -160,10 +232,10 @@ async def _extract_and_analyze_frames(
 async def analyze_video(
     source: str,
     detail: str = "standard",
-    max_frames: int = 30,
+    max_frames: int = _AUTO,
     threshold: float = 0.3,
     strategy: str = "combined",
-    interval: int = 5,
+    interval: int = _AUTO,
     skip_frames: bool = False,
     skip_audio: bool = False,
     language: str = "auto",
@@ -195,6 +267,11 @@ async def analyze_video(
             f"Video duration ({duration}s) exceeds limit ({settings.max_video_duration}s). "
             "Use analyze_moment for specific time ranges, or set MAX_VIDEO_DURATION=0 for unlimited."
         )
+
+    # --- Auto-tune params based on video duration ---
+    max_frames, interval, strategy, detail = _auto_tune_params(
+        duration, max_frames, interval, strategy, detail,
+    )
 
     # Check cache
     cache = Cache(

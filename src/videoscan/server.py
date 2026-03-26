@@ -10,15 +10,23 @@ logger = logging.getLogger(__name__)
 mcp = FastMCP("VideoScan", instructions="Comprehensive video analysis — transcription, AI-powered visual frame analysis, and metadata extraction")
 
 @mcp.tool()
-async def analyze_video(source: str, detail: str = "standard", max_frames: int = 30, threshold: float = 0.3, strategy: str = "combined", interval: int = 5, skip_frames: bool = False, skip_audio: bool = False, language: str = "auto", provider: str | None = None, force_refresh: bool = False) -> dict:
+async def analyze_video(source: str, detail: str = "standard", max_frames: int = -1, threshold: float = 0.3, strategy: str = "combined", interval: int = -1, skip_frames: bool = False, skip_audio: bool = False, language: str = "auto", provider: str | None = None, force_refresh: bool = False) -> dict:
     """Analyze a video comprehensively — transcription + AI visual frame analysis + metadata.
+
+    Frame extraction auto-tunes based on video duration when max_frames and interval are not specified:
+    - Under 2 min: dense (1 frame/sec), detailed analysis
+    - 2-10 min: balanced (~40 frames, 3s interval)
+    - 10-30 min: efficient (~30 frames, 10s interval)
+    - 30-60 min: economical (~30 frames, 20s interval)
+    - Over 60 min: light (scene detection only, ~20 frames)
+
     Args:
         source: URL (YouTube, Vimeo, 1000+ sites) or local file path
         detail: Vision analysis level — "brief", "standard", or "detailed"
-        max_frames: Maximum frames to analyze (1-100)
+        max_frames: Maximum frames to analyze. Set to -1 (default) for auto-tuning based on video duration
         threshold: Scene change sensitivity (0.0-1.0)
         strategy: Frame extraction — "scene", "interval", or "combined"
-        interval: Seconds between frames in interval mode
+        interval: Seconds between frames. Set to -1 (default) for auto-tuning based on video duration
         skip_frames: Skip visual analysis, transcription only
         skip_audio: Skip transcription, frames only
         language: Preferred transcription language or "auto"
